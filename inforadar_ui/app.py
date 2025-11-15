@@ -46,20 +46,63 @@ def index():
         return f"<b>Ошибка при получении данных:</b> {e}"
 
 
-# === API matches ===
-@app.route("/api/matches")
-def api_matches():
-    conn = get_connection()
-    if conn is None:
-        return jsonify({"error": "Не удалось подключиться к MySQL"}), 500
-    try:
-        with conn.cursor() as cursor:
-            cursor.execute("SELECT * FROM matches ORDER BY start_time DESC;")
-            matches = cursor.fetchall()
-        conn.close()
-        return jsonify(matches)
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
+# === API matches с фильтрами по спорту и лиге ===
+@app.route("/api/anomalies")
+def api_anomalies():
+    minutes = int(request.args.get("minutes", 30))
+    type_filter = request.args.get("type", "")
+    bookmaker = request.args.get("bookmaker", "")
+    min_diff = request.args.get("min_diff", "")
+
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+
+    query = """
+        SELECT 
+            DATE_FORMAT(time, '%d.%m %H:%i') AS time,
+            match,
+            league,
+            bookmaker,
+            type,
+            details,
+            diff
+        FROM anomalies
+        WHERE time >= NOW() - INTERVAL %s MINUTE
+    """
+    params = [minutes]
+
+    if type_filter:
+        query += " AND type = %s"
+        params.append(type_filter)
+
+    if bookmaker:
+        query += " AND bookmaker = %s"
+        params.append(bookmaker)
+
+    if min_diff:
+        query += " AND diff >= %s"
+        params.append(float(min_diff))
+
+    query += " ORDER BY time DESC"
+
+    cursor.execute(query, params)
+    rows = cursor.fetchall()
+
+    # Приведение типа к красивому виду + цвета бейджей
+    type_labels = {
+        "odds_jump": ("Изменение коэффициента", "#fff3cd"),
+        "limit_drop": ("Порезка лимита", "#ffe0e0"),
+        "limit_odd_reduction": ("Порезка коэффициентов", "#d4edda"),
+        "limit_flag_on": ("Блокировка ставки", "#e2e3ff"),
+        "match_removed": ("Матч снят с линии", "#f8d7da"),
+    }
+
+    for row in rows:
+        label, color = type_labels.get(row["type"], ("Другое", "#eeeeee"))
+        row["type_label"] = label
+        row["badge_color"] = color
+
+    return jsonify(rows)
 
 
 # === LIVE ===

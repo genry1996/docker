@@ -3,7 +3,9 @@
 {% block content %}
 <div class="welcome-container">
   <h2 class="page-title fade-in">🏆 Добро пожаловать в OddlyOdds Production</h2>
-  <p class="fade-in-delay">Интеллектуальная панель мониторинга спортивных коэффициентов и событий в реальном времени ⚙️</p>
+  <p class="fade-in-delay">
+    Интеллектуальная панель мониторинга спортивных коэффициентов и событий в реальном времени ⚙️
+  </p>
 
   <!-- ====== Блок иконок ====== -->
   <div class="sports-icons fade-in-slow">
@@ -27,6 +29,47 @@
     <button onclick="location.href='/prematch'" class="tab-btn">🕒 Prematch</button>
     <button onclick="location.href='/matches'" class="tab-btn">📊 Matches</button>
     <button onclick="location.href='/esports'" class="tab-btn">🎮 Esports</button>
+    <button onclick="location.href='/anomalies'" class="tab-btn">⚠ Аномалии (лимиты / снятия)</button>
+  </div>
+
+  <!-- ====== ПАНЕЛЬ ФИЛЬТРОВ ====== -->
+  <div class="filters-row fade-in-late">
+    <div class="filter-group">
+      <label for="sport-filter">🏅 Вид спорта</label>
+      <select id="sport-filter">
+        <option value="">Все виды спорта</option>
+        <option value="Football">Football</option>
+        <option value="Basketball">Basketball</option>
+        <option value="Tennis">Tennis</option>
+        <option value="Hockey">Hockey</option>
+        <option value="Volleyball">Volleyball</option>
+        <option value="Handball">Handball</option>
+        <option value="eSports">eSports</option>
+        <option value="Futsal">Futsal</option>
+      </select>
+    </div>
+
+    <!-- Заглушка под фильтр лиги (можно позже сделать динамически) -->
+    <div class="filter-group">
+      <label for="league-filter">🏆 Лига</label>
+      <input id="league-filter" type="text" placeholder="Например: Premier League">
+    </div>
+
+    <!-- Чипы типов маркетов -->
+    <div class="filter-group market-group">
+      <label>🎯 Маркет</label>
+      <div class="market-chips" id="market-chips">
+        <button class="market-chip active" data-market="all">Все</button>
+        <button class="market-chip" data-market="full_match">Полный матч</button>
+        <button class="market-chip" data-market="time">🕒 Тайм / период / сет / карта</button>
+        <button class="market-chip" data-market="quarter">🟦 Четверть</button>
+        <button class="market-chip" data-market="totals">📈 Тоталы</button>
+        <button class="market-chip" data-market="handicaps">➖ Форы</button>
+        <button class="market-chip" data-market="exact_score">🎯 Точный счёт</button>
+        <button class="market-chip" data-market="goals_ou">⚽ Голы O/U</button>
+        <button class="market-chip" data-market="team_totals">📊 Индивидуальные тоталы</button>
+      </div>
+    </div>
   </div>
 
   <!-- ====== Контейнер таблицы с shimmer ====== -->
@@ -36,7 +79,9 @@
   <div class="welcome-panel fade-in-late">
     <p>
       Следите за изменением коэффициентов в реальном времени, анализируйте движение линий и сравнивайте результаты разных видов спорта.
-      Данные обновляются каждые <b>10 секунд</b> с высокой точностью 📈
+      Данные обновляются каждые <b>10 секунд</b> с высокой точностью 📈<br>
+      Фильтры по лимитам, снятым матчам и порезкам доступны в разделе
+      <b>⚠ Аномалии</b>.
     </p>
   </div>
 </div>
@@ -99,12 +144,109 @@
 #matches-container tr:hover {
   background: #fff3d1;
 }
+
+/* ===== Панель фильтров ===== */
+.filters-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  align-items: flex-end;
+  margin: 10px auto 5px;
+  max-width: 1000px;
+  justify-content: center;
+}
+.filter-group {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 160px;
+}
+.filter-group label {
+  font-size: 13px;
+  font-weight: 600;
+  color: #6b542b;
+}
+.filter-group select,
+.filter-group input {
+  background: #fffdf5;
+  border-radius: 8px;
+  border: 1px solid #e2c474;
+  padding: 6px 10px;
+  font-size: 13px;
+}
+
+/* Маркет-чипы */
+.market-group {
+  flex: 1 1 100%;
+}
+.market-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.market-chip {
+  border: none;
+  border-radius: 999px;
+  padding: 5px 10px;
+  font-size: 12px;
+  cursor: pointer;
+  background: #fff7d6;
+  color: #6b542b;
+  transition: all 0.2s ease;
+}
+.market-chip:hover {
+  background: #ffeaa6;
+}
+.market-chip.active {
+  background: #ffb84d;
+  color: #fff;
+  box-shadow: 0 0 8px rgba(0,0,0,0.15);
+}
+
+/* responsive */
+@media (max-width: 800px) {
+  .filters-row {
+    align-items: stretch;
+  }
+  .market-group {
+    order: 3;
+  }
+}
 </style>
 
 <script>
 document.addEventListener("DOMContentLoaded", () => {
+  // Анимация появления блоков
   document.querySelectorAll(".fade-in, .fade-in-delay, .fade-in-slow, .fade-in-late")
     .forEach((el, i) => setTimeout(() => el.classList.add("visible"), 200 + i * 250));
+
+  const sportSelect = document.getElementById("sport-filter");
+  const leagueInput = document.getElementById("league-filter");
+  const marketChips = document.getElementById("market-chips");
+
+  let currentMarket = "all";
+
+  // переключение маркет-чипов
+  if (marketChips) {
+    marketChips.addEventListener("click", (e) => {
+      const btn = e.target.closest(".market-chip");
+      if (!btn) return;
+      currentMarket = btn.dataset.market || "all";
+      marketChips.querySelectorAll(".market-chip").forEach(b => b.classList.remove("active"));
+      btn.classList.add("active");
+      loadMatches();  // в будущем фильтр маркетов будет работать по odds/odds_history
+    });
+  }
+
+  if (sportSelect) {
+    sportSelect.addEventListener("change", () => loadMatches());
+  }
+  if (leagueInput) {
+    leagueInput.addEventListener("change", () => loadMatches());
+    leagueInput.addEventListener("keyup", (e) => {
+      if (e.key === "Enter") loadMatches();
+    });
+  }
 
   // --- shimmer-анимация ---
   function showShimmer() {
@@ -121,12 +263,30 @@ document.addEventListener("DOMContentLoaded", () => {
 
   async function loadMatches() {
     showShimmer();
+
+    const params = new URLSearchParams();
+
+    const sportVal = sportSelect?.value || "";
+    const leagueVal = leagueInput?.value || "";
+
+    if (sportVal) params.set("sport", sportVal);
+    if (leagueVal) params.set("league", leagueVal.trim());
+    // currentMarket пока просто пробрасываем вперёд — будем использовать,
+    // когда добавим API по маркетам (odds / odds_history)
+    if (currentMarket && currentMarket !== "all") {
+      params.set("market_type", currentMarket);
+    }
+
+    const url = "/api/matches" + (params.toString() ? `?${params.toString()}` : "");
+
     try {
-      const response = await fetch("/api/matches");
+      const response = await fetch(url);
       const data = await response.json();
-      setTimeout(() => renderTable(data), 500); // имитация плавного обновления
+      setTimeout(() => renderTable(data), 300); // лёгкая задержка для плавного эффекта
     } catch (error) {
       console.error("Ошибка загрузки:", error);
+      const container = document.getElementById("matches-container");
+      container.innerHTML = "<p>Ошибка загрузки данных.</p>";
     }
   }
 
