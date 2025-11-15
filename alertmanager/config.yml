@@ -1,0 +1,25 @@
+global:
+  resolve_timeout: 5m
+
+route:
+  receiver: 'telegram'
+
+receivers:
+  - name: 'telegram'
+    telegram_configs:
+      - bot_token: '8564224015:AAEVK8cG_-9LnbAyRhLGFwq_0F6s4NxQuzs'
+        chat_id: 5377484616
+        parse_mode: Markdown
+        message: |
+          🚨 *Alert:* {{ .CommonLabels.alertname }}
+          🧱 *Instance:* {{ .CommonLabels.instance }}
+          🔥 *Status:* {{ .Status }}
+          ⏰ *Time:* {{ .StartsAt }}
+          📊 *Description:* {{ .Annotations.summary }}
+
+inhibit_rules:
+  - source_match:
+      severity: 'critical'
+    target_match:
+      severity: 'warning'
+    equal: ['alertname', 'instance']

@@ -1,0 +1,28 @@
+groups:
+  - name: TestAlerts
+    rules:
+      - alert: InstanceDown
+        expr: up == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Instance {{ $labels.instance }} is down"
+          description: "{{ $labels.instance }} of job {{ $labels.job }} has been down for more than 1 minute."
+
+  - name: ResourceAlerts
+    rules:
+      - alert: HighContainerMemoryUsage
+        # Use working_set as a practical signal of memory pressure.
+        # Guard against zero limits to avoid division by zero.
+        expr: |
+          (sum by (name) (container_memory_working_set_bytes{image!=""}))
+          /
+          clamp_min(sum by (name) (container_spec_memory_limit_bytes{image!=""}), 1)
+          * 100 > 80
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "⚠️ Высокое потребление памяти"
+          description: "Контейнер {{ $labels.name }} использует более 80% доступной памяти."

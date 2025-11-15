@@ -1,0 +1,177 @@
+services:
+  mysql_inforadar:
+    image: mysql:8.0-debian
+    container_name: mysql_inforadar
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: ryban8991!
+      MYSQL_DATABASE: inforadar
+    ports:
+      - "3307:3306"
+    command: [
+      "--default-authentication-plugin=mysql_native_password",
+      "--bind-address=0.0.0.0",
+      "--skip-host-cache",
+      "--skip-name-resolve"
+    ]
+    volumes:
+      - inforadar_mysql_data:/var/lib/mysql
+    networks:
+      - inforadar_network
+
+  prometheus_inforadar:
+    image: prom/prometheus:latest
+    container_name: prometheus_inforadar
+    restart: always
+    volumes:
+      - ./prometheus:/etc/prometheus
+    ports:
+      - "9090:9090"
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+    networks:
+      - inforadar_network
+
+  grafana_inforadar:
+    image: grafana/grafana:latest
+    container_name: grafana_inforadar
+    restart: always
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+    volumes:
+      - grafana_data:/var/lib/grafana
+    networks:
+      - inforadar_network
+
+  loki_inforadar:
+    image: grafana/loki:2.9.0
+    container_name: loki_inforadar
+    restart: always
+    ports:
+      - "3100:3100"
+    volumes:
+      - ./loki:/etc/loki
+    command: ["-config.file=/etc/loki/config.yml"]
+    networks:
+      - inforadar_network
+
+  promtail_inforadar:
+    image: grafana/promtail:2.9.0
+    container_name: promtail_inforadar
+    restart: always
+    volumes:
+      - ./promtail:/etc/promtail
+      - /var/lib/docker/containers:/var/lib/docker/containers:ro
+      - /var/run/docker.sock:/var/run/docker.sock
+    command: ["-config.file=/etc/promtail/config.yml"]
+    networks:
+      - inforadar_network
+
+  alertmanager_inforadar:
+    image: prom/alertmanager
+    container_name: alertmanager_inforadar
+    restart: always
+    ports:
+      - "9093:9093"
+    volumes:
+      - ./alertmanager:/etc/alertmanager
+    networks:
+      - inforadar_network
+
+  cadvisor_inforadar:
+    image: gcr.io/cadvisor/cadvisor:latest
+    container_name: cadvisor_inforadar
+    restart: always
+    ports:
+      - "8081:8080"
+    volumes:
+      - /:/rootfs:ro
+      - /var/run:/var/run:rw
+      - /sys:/sys:ro
+      - /var/lib/docker/:/var/lib/docker:ro
+    networks:
+      - inforadar_network
+
+  node_exporter_inforadar:
+    image: prom/node-exporter:latest
+    container_name: node_exporter_inforadar
+    restart: always
+    ports:
+      - "9100:9100"
+    networks:
+      - inforadar_network
+
+  inforadar_ui:
+    build: ./inforadar_ui
+    container_name: inforadar_ui
+    ports:
+      - "5000:5000"
+    environment:
+      - MYSQL_HOST=mysql_inforadar
+      - MYSQL_USER=root
+      - MYSQL_PASSWORD=ryban8991!
+      - MYSQL_DATABASE=inforadar
+    volumes:
+      - ./inforadar_ui:/app
+    depends_on:
+      - mysql_inforadar
+    networks:
+      - inforadar_network
+
+  inforadar_parser:
+    build:
+      context: .
+      dockerfile: ./betparser/Dockerfile
+    container_name: inforadar_parser
+    restart: always
+    depends_on:
+      - mysql_inforadar
+    environment:
+      - MYSQL_HOST=mysql_inforadar
+      - MYSQL_USER=root
+      - MYSQL_PASSWORD=ryban8991!
+      - MYSQL_DB=inforadar
+    volumes:
+      - ./betparser:/app
+    command: >
+      sh -c "python -u /app/wait_for_mysql.py && while true; do python /app/anomaly_parser.py; sleep 300; done"
+    networks:
+      - inforadar_network
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  anomaly_detector:
+    build: ./services/anomaly_detector
+    container_name: anomaly_detector
+    restart: always
+    volumes:
+      - ./services/anomaly_detector:/app
+    environment:
+      MYSQL_HOST: mysql_inforadar
+      MYSQL_USER: root
+      MYSQL_PASSWORD: ryban8991!
+      MYSQL_DB: inforadar
+
+      TG_TOKEN: "8538142496:AAGNCfPOH3fLA7vRmdBWdf7x682hDzoUwFA"
+      TG_CHAT_ID: "5377484616"
+
+      ANALYZE_PREMATCH: "1"
+      ANALYZE_LIVE: "1"
+    depends_on:
+      - mysql_inforadar
+    networks:
+      - inforadar_network
+
+volumes:
+  inforadar_mysql_data:
+  grafana_data:
+
+networks:
+  inforadar_network:
+    driver: bridge

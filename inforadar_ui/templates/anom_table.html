@@ -1,0 +1,44 @@
+<table class="table table-bordered table-hover shadow-sm">
+    <thead class="table-dark">
+        <tr>
+            <th>Время</th>
+            <th>Матч</th>
+            <th>БК</th>
+            <th>Тип</th>
+            <th>Детали</th>
+        </tr>
+    </thead>
+    <tbody>
+
+    {% for a in anomalies %}
+        <tr class="
+            {% if a.type == 'odds_jump' %} table-danger
+            {% elif a.type == 'limit_drop' %} table-warning
+            {% elif a.type == 'limit_flag_on' %} table-light
+            {% endif %}
+        ">
+            <td>{{ a.time }}</td>
+
+            <td>
+                <b>{{ a.match }}</b><br>
+                <small>{{ a.league }}</small>
+            </td>
+
+            <td><b>{{ a.bookmaker }}</b></td>
+
+            <td>
+                {% if a.type == 'odds_jump' %}
+                    🔥 Падение кэфа
+                {% elif a.type == 'limit_drop' %}
+                    📉 Падение лимита
+                {% elif a.type == 'limit_flag_on' %}
+                    🚫 Ограничение
+                {% endif %}
+            </td>
+
+            <td>{{ a.comment|safe }}</td>
+        </tr>
+    {% endfor %}
+
+    </tbody>
+</table>

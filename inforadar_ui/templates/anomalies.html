@@ -1,0 +1,169 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div class="container" style="max-width:1300px; margin-top:40px;">
+  <h2>📊 Аномалии</h2>
+
+  <!-- Фильтры -->
+  <div class="filters" style="margin:20px 0; padding:15px; background:#fff7ee; border-radius:10px; display:flex; flex-wrap:wrap; gap:10px; align-items:center;">
+
+    <div>
+      <label>⏱ За последние:</label>
+      <select id="f_minutes">
+        <option value="5">5 мин</option>
+        <option value="15">15 мин</option>
+        <option value="30" selected>30 мин</option>
+        <option value="60">60 мин</option>
+        <option value="180">3 часа</option>
+      </select>
+    </div>
+
+    <div>
+      <label>🎯 Тип:</label>
+      <select id="f_type">
+        <option value="">Все</option>
+        <option value="odds_jump">Изменение коэффициента</option>
+        <option value="limit_drop">Порезка лимита</option>
+        <option value="limit_odd_reduction">Порезка коэффициентов</option>
+        <option value="limit_flag_on">Блокировка ставки</option>
+        <option value="match_removed">Матч снят с линии</option>
+      </select>
+    </div>
+
+    <div>
+      <label>🏦 БК:</label>
+      <select id="f_bookmaker">
+        <option value="">Все</option>
+      </select>
+    </div>
+
+    <div>
+      <label>Δ% ≥</label>
+      <input id="f_min_diff" type="number" step="0.1" min="0" style="width:80px;" placeholder="напр. 5">
+    </div>
+
+    <div>
+      <button onclick="loadAnomalies()">🔄 Обновить</button>
+    </div>
+  </div>
+
+  <!-- Таблица -->
+  <table id="an_table" class="styled-table" style="width:100%; border-collapse:collapse;">
+    <thead>
+      <tr>
+        <th>Время</th>
+        <th>Матч</th>
+        <th>Лига</th>
+        <th>БК</th>
+        <th>Тип</th>
+        <th>Детали</th>
+      </tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+</div>
+
+<style>
+  .badge-type {
+    display:inline-block;
+    padding:2px 8px;
+    border-radius:999px;
+    font-size:12px;
+    border:1px solid #ccc;
+    white-space:nowrap;
+  }
+  .styled-table thead tr {
+    background-color:#f2f2f2;
+  }
+  .styled-table th,
+  .styled-table td {
+    padding:6px 8px;
+    border-bottom:1px solid #eee;
+    font-size:13px;
+  }
+  .styled-table tbody tr:hover {
+    background:#fafafa;
+  }
+</style>
+
+<script>
+function loadBookmakers() {
+  // Для списка БК — возьмём без фильтров, по умолчанию за 60 минут
+  fetch("/api/anomalies?minutes=60")
+    .then(r => r.json())
+    .then(data => {
+      const set = new Set();
+      data.forEach(row => {
+        if (row.bookmaker) set.add(row.bookmaker);
+      });
+
+      const bmSelect = document.getElementById("f_bookmaker");
+      set.forEach(book => {
+        const opt = document.createElement("option");
+        opt.value = book;
+        opt.textContent = book;
+        bmSelect.appendChild(opt);
+      });
+    });
+}
+
+function loadAnomalies() {
+  const mins = document.getElementById("f_minutes").value;
+  const type = document.getElementById("f_type").value;
+  const book = document.getElementById("f_bookmaker").value;
+  const minDiff = document.getElementById("f_min_diff").value.trim();
+
+  let url = `/api/anomalies?minutes=${encodeURIComponent(mins)}`;
+  if (type) url += `&type=${encodeURIComponent(type)}`;
+  if (book) url += `&bookmaker=${encodeURIComponent(book)}`;
+  if (minDiff) url += `&min_diff=${encodeURIComponent(minDiff)}`;
+
+  fetch(url)
+    .then(r => r.json())
+    .then(data => {
+      const tbody = document.querySelector("#an_table tbody");
+      tbody.innerHTML = "";
+
+      data.forEach(row => {
+        const tr = document.createElement("tr");
+
+        const tdTime = document.createElement("td");
+        tdTime.textContent = row.time;
+
+        const tdMatch = document.createElement("td");
+        tdMatch.textContent = row.match;
+
+        const tdLeague = document.createElement("td");
+        tdLeague.textContent = row.league;
+
+        const tdBook = document.createElement("td");
+        tdBook.textContent = row.bookmaker || "";
+
+        const tdType = document.createElement("td");
+        const span = document.createElement("span");
+        span.className = "badge-type";
+        span.textContent = row.type_label;
+        span.style.backgroundColor = row.badge_color || "#eeeeee";
+        tdType.appendChild(span);
+
+        const tdDetails = document.createElement("td");
+        tdDetails.textContent = row.details || "";
+
+        tr.appendChild(tdTime);
+        tr.appendChild(tdMatch);
+        tr.appendChild(tdLeague);
+        tr.appendChild(tdBook);
+        tr.appendChild(tdType);
+        tr.appendChild(tdDetails);
+
+        tbody.appendChild(tr);
+      });
+    });
+}
+
+// начальная загрузка
+loadBookmakers();
+loadAnomalies();
+</script>
+
+{% endblock %}

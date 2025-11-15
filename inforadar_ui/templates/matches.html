@@ -1,0 +1,261 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="matches-container">
+  <h2 class="page-title fade-in">📊 Мониторинг матчей</h2>
+  <p class="fade-in-delay">
+    Обновление каждые <b>10 секунд</b>.<br>
+    Цветовая индикация: 🔺↑ / 🔻↓ / ⚠️ лимит / 🚫 блокировка / ❌ снят.
+  </p>
+
+  <!-- === Панель фильтров === -->
+  <div class="filter-panel fade-in-late">
+    <label>Блокировки ≥ %:</label>
+    <input type="number" id="filter-block" value="0" min="0" max="100" step="1">
+    <label>Лимиты ≥ %:</label>
+    <input type="number" id="filter-limit" value="0" min="0" max="100" step="1">
+    <label>
+      <input type="checkbox" id="filter-anomalies">
+      Только аномалии
+    </label>
+    <button id="apply-filter" class="filter-btn">Фильтровать</button>
+  </div>
+
+  <div id="matches-table"></div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<style>
+/* === фильтр === */
+.filter-panel {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  background: #fff8e1;
+  padding: 10px 15px;
+  border-radius: 10px;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.05);
+  margin-top: 15px;
+}
+.filter-panel label {
+  font-weight: 600;
+  color: #5d4037;
+}
+.filter-panel input[type="number"] {
+  width: 70px;
+  text-align: center;
+  padding: 4px;
+  border-radius: 6px;
+  border: 1px solid #ccc;
+}
+.filter-panel input[type="checkbox"] {
+  transform: scale(1.2);
+  margin-right: 4px;
+}
+.filter-btn {
+  background: #ffca28;
+  border: none;
+  border-radius: 6px;
+  padding: 6px 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s ease-in-out;
+}
+.filter-btn:hover {
+  background: #ffc107;
+}
+
+/* === shimmer === */
+.shimmer {
+  position: relative;
+  overflow: hidden;
+  background: #f6f7f8;
+  background-image: linear-gradient(
+    to right,
+    #f6f7f8 0%,
+    #edeef1 20%,
+    #f6f7f8 40%,
+    #f6f7f8 100%
+  );
+  background-repeat: no-repeat;
+  background-size: 800px 100%;
+  animation: shimmer 1.5s linear infinite;
+  border-radius: 8px;
+}
+@keyframes shimmer {
+  0% { background-position: -800px 0; }
+  100% { background-position: 800px 0; }
+}
+.shimmer-container { padding: 15px; }
+.shimmer-line { height: 18px; margin-bottom: 10px; border-radius: 6px; }
+
+/* === таблица === */
+#matches-table table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 20px;
+  background: #fff9ef;
+  border-radius: 10px;
+  overflow: hidden;
+  box-shadow: 0 0 8px rgba(0,0,0,0.05);
+}
+#matches-table th, #matches-table td {
+  padding: 10px 12px;
+  text-align: center;
+  border-bottom: 1px solid #f1e6c4;
+}
+#matches-table th {
+  background: #ffecb3;
+  font-weight: 600;
+  color: #795548;
+}
+#matches-table tr:hover {
+  background: #fff3d1;
+}
+
+/* === fade-in === */
+.fade-in-table { animation: fadeIn 0.5s ease-in; }
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* === статусы матчей === */
+.status-suspended { background: #e0e0e0 !important; opacity: 0.7; }
+.status-limited { background: #fff3cd !important; border-left: 4px solid #ffb300; }
+.status-removed { background: #fbe9e7 !important; color: #9e9e9e !important; text-decoration: line-through; }
+
+/* === подсветка изменения коэффициентов === */
+.flash-up { background-color: #d9fdd3 !important; transition: background-color 1.2s ease-out; }
+.flash-down { background-color: #ffd6d6 !important; transition: background-color 1.2s ease-out; }
+</style>
+
+<script>
+let previousData = [];
+
+function showShimmer() {
+  const table = document.getElementById("matches-table");
+  table.innerHTML = `
+    <div class="shimmer-container">
+      <div class="shimmer shimmer-line" style="width:90%;height:20px"></div>
+      <div class="shimmer shimmer-line" style="width:70%;height:20px"></div>
+      <div class="shimmer shimmer-line" style="width:85%;height:20px"></div>
+    </div>`;
+}
+
+async function loadMatches(apiUrl = "/api/matches") {
+  showShimmer();
+  try {
+    const response = await fetch(apiUrl);
+    const data = await response.json();
+    setTimeout(() => renderTable(data), 500);
+  } catch (err) {
+    console.error("Ошибка загрузки:", err);
+  }
+}
+
+function rowClassByStatus(status) {
+  switch (status) {
+    case "suspended": return "status-suspended";
+    case "limited": return "status-limited";
+    case "removed": return "status-removed";
+    default: return "";
+  }
+}
+
+function renderTable(matches) {
+  const table = document.getElementById("matches-table");
+  if (!matches || matches.length === 0) {
+    table.innerHTML = "<p>Нет данных для отображения.</p>";
+    return;
+  }
+
+  let html = `
+    <table class="fade-in-table">
+      <thead>
+        <tr>
+          <th>Спорт</th>
+          <th>Лига</th>
+          <th>Дом</th>
+          <th>Гости</th>
+          <th>Кэф (Дом)</th>
+          <th>Кэф (Гости)</th>
+          <th>Счёт</th>
+          <th>Блок %</th>
+          <th>Лимит %</th>
+          <th>Аномалия</th>
+          <th>Статус</th>
+          <th>Время</th>
+        </tr>
+      </thead><tbody>`;
+
+  matches.forEach((m) => {
+    const cls = rowClassByStatus(m.status) + (m.anomaly_flag ? " row-anomaly" : "");
+    html += `
+      <tr id="match-${m.id}" class="${cls}">
+        <td>${m.sport}</td>
+        <td>${m.league}</td>
+        <td>${m.home_team}</td>
+        <td>${m.away_team}</td>
+        <td class="odds-home">${m.odds_home ?? "-"}</td>
+        <td class="odds-away">${m.odds_away ?? "-"}</td>
+        <td>${m.score_home ?? "-"} : ${m.score_away ?? "-"}</td>
+        <td>${m.blocked_percent ?? 0}%</td>
+        <td>${m.limited_percent ?? 0}%</td>
+        <td>${m.anomaly_flag ? "⚠️" : ""}</td>
+        <td>${m.status ?? "active"}</td>
+        <td>${m.start_time}</td>
+      </tr>`;
+  });
+
+  html += "</tbody></table>";
+  table.innerHTML = html;
+
+  highlightChanges(matches);
+}
+
+function highlightChanges(newData) {
+  newData.forEach((m) => {
+    const old = previousData.find(o => o.id === m.id);
+    if (!old) return;
+
+    const row = document.getElementById(`match-${m.id}`);
+    const homeCell = row?.querySelector(".odds-home");
+    const awayCell = row?.querySelector(".odds-away");
+
+    if (m.odds_home !== old.odds_home && homeCell) {
+      homeCell.classList.add(m.odds_home > old.odds_home ? "flash-up" : "flash-down");
+      setTimeout(() => homeCell.classList.remove("flash-up", "flash-down"), 1200);
+    }
+    if (m.odds_away !== old.odds_away && awayCell) {
+      awayCell.classList.add(m.odds_away > old.odds_away ? "flash-up" : "flash-down");
+      setTimeout(() => awayCell.classList.remove("flash-up", "flash-down"), 1200);
+    }
+
+    if (m.status !== old.status && row) {
+      row.className = rowClassByStatus(m.status);
+    }
+  });
+  previousData = JSON.parse(JSON.stringify(newData));
+}
+
+/* === логика фильтра === */
+document.addEventListener("DOMContentLoaded", () => {
+  document.getElementById("apply-filter").addEventListener("click", () => {
+    const block = document.getElementById("filter-block").value;
+    const limit = document.getElementById("filter-limit").value;
+    const anomalies = document.getElementById("filter-anomalies").checked;
+
+    let url = `/api/matches?min_block=${block}&min_limit=${limit}`;
+    if (anomalies) url += "&anomalies=true";
+
+    loadMatches(url);
+  });
+
+  loadMatches();
+  setInterval(loadMatches, 10000);
+});
+</script>
+{% endblock %}

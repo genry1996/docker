@@ -1,0 +1,46 @@
+# --- Python ---
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.log
+*.sqlite3
+.env
+.DS_Store
+
+# --- Virtual Environment ---
+venv/
+env/
+.venv/
+
+# --- IDE / Editors ---
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+
+# --- Docker / Local Volumes ---
+mysql_data/
+grafana_data/
+prometheus_data/
+loki_data/
+provisioning/
+dashboards_backup/
+__init__.py
+
+# --- System / Cache ---
+*.bak
+*.tmp
+*.swp
+*.log
+*.pid
+
+# --- Jupyter / Notebooks (если есть) ---
+.ipynb_checkpoints/
+
+# --- Windows ---
+Thumbs.db
+Desktop.ini
+
+# --- MacOS ---
+.DS_Store

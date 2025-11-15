@@ -1,0 +1,11 @@
+requests
+pymysql
+aiomysql
+loguru
+schedule
+beautifulsoup4
+lxml
+cryptography
+pandas
+numpy
+python-dateutil
