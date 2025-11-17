@@ -10,18 +10,31 @@
 
   <!-- === Панель фильтров === -->
   <div class="filter-panel fade-in-late">
-    <label>Блокировки ≥ %:</label>
-    <input type="number" id="filter-block" value="0" min="0" max="100" step="1">
-    <label>Лимиты ≥ %:</label>
-    <input type="number" id="filter-limit" value="0" min="0" max="100" step="1">
-    <label>
-      <input type="checkbox" id="filter-anomalies">
-      Только аномалии
-    </label>
-    <button id="apply-filter" class="filter-btn">Фильтровать</button>
-  </div>
+  <label>Блокировки ≥ %:</label>
+  <input type="number" id="filter-block" value="0" min="0" max="100" step="1">
 
-  <div id="matches-table"></div>
+  <label>Лимиты ≥ %:</label>
+  <input type="number" id="filter-limit" value="0" min="0" max="100" step="1">
+
+  <label>Маркет:</label>
+  <select id="filter-market-block">
+    <option value="">Все</option>
+    <option value="full_match">Полный матч</option>
+    <option value="time">Тайм</option>
+    <option value="quarter_set_period">Четверть / сет / период</option>
+    <option value="correct_score">Точный счёт</option>
+    <option value="totals">Тоталы</option>
+    <option value="handicaps">Форы</option>
+    <option value="goals">Голы (Over/Under)</option>
+    <option value="team_totals">Индив. тоталы</option>
+  </select>
+
+  <label>
+    <input type="checkbox" id="filter-anomalies">
+    Только аномалии
+  </label>
+
+  <button id="apply-filter" class="filter-btn">Фильтровать</button>
 </div>
 {% endblock %}
 
@@ -247,13 +260,16 @@ document.addEventListener("DOMContentLoaded", () => {
     const block = document.getElementById("filter-block").value;
     const limit = document.getElementById("filter-limit").value;
     const anomalies = document.getElementById("filter-anomalies").checked;
+    const marketBlock = document.getElementById("filter-market-block").value;
 
     let url = `/api/matches?min_block=${block}&min_limit=${limit}`;
     if (anomalies) url += "&anomalies=true";
+    if (marketBlock) url += `&market_block=${encodeURIComponent(marketBlock)}`;
 
     loadMatches(url);
   });
 
+  // стартовый запрос без фильтров
   loadMatches();
   setInterval(loadMatches, 10000);
 });

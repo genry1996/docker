@@ -1,0 +1,9 @@
+{
+  "type": "ODDS_REAPPEARED",
+
+  "market": {
+    "category": "Total",
+    "subtype": "Over",
+    "line_after": 2.5
+  }
+}

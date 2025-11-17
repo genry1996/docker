@@ -1,0 +1,10 @@
+{
+  "type": "LINE_SHRINK",
+
+  "market": {
+    "category": "Total",
+    "subtype": "Under",
+    "line_before": 4.5,
+    "line_after": 3.5
+  }
+}

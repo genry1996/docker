@@ -1,0 +1,31 @@
+{
+  "anomaly_id": "uuid-002",
+  "type": "ODDS_RISE",
+  "detected_at": "2025-11-16T14:11:02Z",
+  "severity": "MEDIUM",
+  "window_seconds": 1800,
+
+  "match_id": 12001,
+  "bookmaker": "bet365",
+
+  "market": {
+    "category": "Total",
+    "subtype": "Over",
+    "line_before": 3.5,
+    "line_after": 3.5
+  },
+
+  "odds": {
+    "before": 1.70,
+    "after": 2.10,
+    "diff_abs": 0.40,
+    "diff_pct": 23.5
+  },
+
+  "status": {
+    "market_removed": false,
+    "match_removed": false,
+    "line_removed": false,
+    "line_added": false
+  }
+}

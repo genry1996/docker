@@ -1,0 +1,9 @@
+{
+  "type": "LIMIT_RISE",
+  "limits": {
+    "before": 700,
+    "after": 3000,
+    "diff_abs": 2300,
+    "diff_pct": 328
+  }
+}

@@ -1,0 +1,39 @@
+{
+  "anomaly_id": "uuid-001",
+  "type": "ODDS_DROP",
+  "detected_at": "2025-11-16T14:10:05Z",
+  "severity": "HIGH",
+  "window_seconds": 1800,
+
+  "match_id": 12001,
+  "bookmaker": "22bet",
+
+  "market": {
+    "category": "Asian Handicap",
+    "subtype": "Home",
+    "line_before": -6,
+    "line_after": -6
+  },
+
+  "odds": {
+    "before": 1.96,
+    "after": 1.54,
+    "diff_abs": -0.42,
+    "diff_pct": -21.4
+  },
+
+  "limits": null,
+  "margin": null,
+
+  "status": {
+    "market_removed": false,
+    "match_removed": false,
+    "line_removed": false,
+    "line_added": false
+  },
+
+  "extra": {
+    "source": "playwright_22bet",
+    "raw_payload_size": 18400
+  }
+}

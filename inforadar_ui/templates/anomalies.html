@@ -1,169 +1,339 @@
-{% extends "base.html" %}
-{% block content %}
-
-<div class="container" style="max-width:1300px; margin-top:40px;">
-  <h2>📊 Аномалии</h2>
-
-  <!-- Фильтры -->
-  <div class="filters" style="margin:20px 0; padding:15px; background:#fff7ee; border-radius:10px; display:flex; flex-wrap:wrap; gap:10px; align-items:center;">
-
-    <div>
-      <label>⏱ За последние:</label>
-      <select id="f_minutes">
-        <option value="5">5 мин</option>
-        <option value="15">15 мин</option>
-        <option value="30" selected>30 мин</option>
-        <option value="60">60 мин</option>
-        <option value="180">3 часа</option>
-      </select>
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>OddlyOdds Anomalies</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body class="oo-body">
+  <!-- Верхняя панель -->
+  <header class="oo-header">
+    <div class="oo-header-left">
+      <a href="/" class="oo-logo">OddlyOdds</a>
+      <span class="oo-header-section">Anomalies</span>
     </div>
-
-    <div>
-      <label>🎯 Тип:</label>
-      <select id="f_type">
-        <option value="">Все</option>
-        <option value="odds_jump">Изменение коэффициента</option>
-        <option value="limit_drop">Порезка лимита</option>
-        <option value="limit_odd_reduction">Порезка коэффициентов</option>
-        <option value="limit_flag_on">Блокировка ставки</option>
-        <option value="match_removed">Матч снят с линии</option>
-      </select>
+    <div class="oo-header-right">
+      <span class="oo-live-pill">LIVE</span>
     </div>
+  </header>
 
-    <div>
-      <label>🏦 БК:</label>
-      <select id="f_bookmaker">
-        <option value="">Все</option>
-      </select>
-    </div>
+  <main class="oo-main">
+    <!-- Заголовок + период -->
+    <section class="oo-anom-top">
+      <div class="oo-anom-title">
+        Лента аномалий
+        <span id="period-label" class="oo-anom-period-label">(последние 20000 минут)</span>
+      </div>
 
-    <div>
-      <label>Δ% ≥</label>
-      <input id="f_min_diff" type="number" step="0.1" min="0" style="width:80px;" placeholder="напр. 5">
-    </div>
+      <div class="oo-anom-top-right">
+        <label class="oo-updated-label">
+          Обновлено в <span id="last-updated">--:--:--</span>
+        </label>
 
-    <div>
-      <button onclick="loadAnomalies()">🔄 Обновить</button>
-    </div>
-  </div>
+        <select id="period-select" class="oo-select">
+          <option value="30">30 минут</option>
+          <option value="60">1 час</option>
+          <option value="180">3 часа</option>
+          <option value="1440">24 часа</option>
+          <option value="20000" selected>Все (20000 мин)</option>
+        </select>
+      </div>
+    </section>
 
-  <!-- Таблица -->
-  <table id="an_table" class="styled-table" style="width:100%; border-collapse:collapse;">
-    <thead>
-      <tr>
-        <th>Время</th>
-        <th>Матч</th>
-        <th>Лига</th>
-        <th>БК</th>
-        <th>Тип</th>
-        <th>Детали</th>
-      </tr>
-    </thead>
-    <tbody></tbody>
-  </table>
-</div>
+    <!-- Фильтры -->
+    <section class="oo-anom-filters">
+      <div class="oo-filter-group">
+        <label for="filter-bookmaker">Букмекер</label>
+        <select id="filter-bookmaker" class="oo-select">
+          <option value="all">Все БК</option>
+        </select>
+      </div>
 
-<style>
-  .badge-type {
-    display:inline-block;
-    padding:2px 8px;
-    border-radius:999px;
-    font-size:12px;
-    border:1px solid #ccc;
-    white-space:nowrap;
-  }
-  .styled-table thead tr {
-    background-color:#f2f2f2;
-  }
-  .styled-table th,
-  .styled-table td {
-    padding:6px 8px;
-    border-bottom:1px solid #eee;
-    font-size:13px;
-  }
-  .styled-table tbody tr:hover {
-    background:#fafafa;
-  }
-</style>
+      <div class="oo-filter-group">
+        <label for="filter-type">Тип</label>
+        <select id="filter-type" class="oo-select">
+          <option value="all">Все типы</option>
+          <option value="Изменение коэффициента">Изменение коэффициента</option>
+          <option value="Порезка лимита">Порезка лимита</option>
+          <option value="Порезка коэффициентов">Порезка коэффициентов</option>
+          <option value="Блокировка ставки">Блокировка ставки</option>
+          <option value="Матч снят">Матч снят</option>
+        </select>
+      </div>
 
-<script>
-function loadBookmakers() {
-  // Для списка БК — возьмём без фильтров, по умолчанию за 60 минут
-  fetch("/api/anomalies?minutes=60")
-    .then(r => r.json())
-    .then(data => {
-      const set = new Set();
-      data.forEach(row => {
-        if (row.bookmaker) set.add(row.bookmaker);
+      <div class="oo-filter-group">
+        <label for="filter-league">Лига</label>
+        <select id="filter-league" class="oo-select">
+          <option value="all">Все лиги</option>
+        </select>
+      </div>
+
+      <div class="oo-filter-group oo-filter-wide">
+        <label for="filter-search">Поиск по матчу</label>
+        <input id="filter-search" type="text" class="oo-input"
+               placeholder="Team A – Team B">
+      </div>
+
+      <div class="oo-filter-group oo-filter-small">
+        <label>&nbsp;</label>
+        <button id="filter-reset" class="oo-btn-secondary">Сбросить</button>
+      </div>
+    </section>
+
+    <!-- Таблица аномалий -->
+    <section class="oo-anom-table-wrapper">
+      <div id="empty-state" class="oo-empty-state" style="display:none;">
+        За выбранные условия аномалий не найдено.
+      </div>
+
+      <div class="oo-anom-table-scroll">
+        <table class="oo-anom-table">
+          <thead>
+            <tr>
+              <th class="col-time">Время</th>
+              <th class="col-match">Матч</th>
+              <th class="col-league">Лига</th>
+              <th class="col-type">Тип</th>
+              <th class="col-details">Детали</th>
+              <th class="col-bookmaker">БК</th>
+            </tr>
+          </thead>
+          <tbody id="anomalies-tbody">
+          </tbody>
+        </table>
+      </div>
+
+      <div class="oo-anom-footer-info">
+        Показано: <span id="shown-count">0</span> аномалий
+      </div>
+    </section>
+  </main>
+
+  <script>
+    // ====== Конфиг ======
+    let currentMinutes = 20000;  // стартуем с "все"
+    const FETCH_URL_BASE = '/api/anomalies?minutes=';
+
+    // ====== DOM ======
+    const tbodyEl = document.getElementById('anomalies-tbody');
+    const emptyStateEl = document.getElementById('empty-state');
+    const lastUpdatedEl = document.getElementById('last-updated');
+    const periodLabelEl = document.getElementById('period-label');
+    const shownCountEl = document.getElementById('shown-count');
+
+    const periodSelectEl = document.getElementById('period-select');
+    const filterBookmakerEl = document.getElementById('filter-bookmaker');
+    const filterTypeEl = document.getElementById('filter-type');
+    const filterLeagueEl = document.getElementById('filter-league');
+    const filterSearchEl = document.getElementById('filter-search');
+    const filterResetBtn = document.getElementById('filter-reset');
+
+    // ====== Состояние ======
+    let anomaliesRaw = [];
+
+    const filters = {
+      bookmaker: 'all',
+      type: 'all',
+      league: 'all',
+      search: ''
+    };
+
+    function parseTime(str) {
+      // "2025-11-15 23:08:26" → Date
+      if (!str) return new Date(0);
+      return new Date(str.replace(' ', 'T'));
+    }
+
+    // ====== Рендер фильтров ======
+    function updateFilterOptions() {
+      const bookies = new Set();
+      const leagues = new Set();
+
+      anomaliesRaw.forEach(a => {
+        if (a.bookmaker) bookies.add(a.bookmaker);
+        if (a.league) leagues.add(a.league);
       });
 
-      const bmSelect = document.getElementById("f_bookmaker");
-      set.forEach(book => {
-        const opt = document.createElement("option");
-        opt.value = book;
-        opt.textContent = book;
-        bmSelect.appendChild(opt);
+      const prevBookie = filters.bookmaker;
+      const prevLeague = filters.league;
+
+      filterBookmakerEl.innerHTML = '<option value="all">Все БК</option>';
+      bookies.forEach(b => {
+        const opt = document.createElement('option');
+        opt.value = b;
+        opt.textContent = b;
+        filterBookmakerEl.appendChild(opt);
       });
-    });
-}
+      if ([...bookies].includes(prevBookie)) {
+        filterBookmakerEl.value = prevBookie;
+      } else {
+        filters.bookmaker = 'all';
+      }
 
-function loadAnomalies() {
-  const mins = document.getElementById("f_minutes").value;
-  const type = document.getElementById("f_type").value;
-  const book = document.getElementById("f_bookmaker").value;
-  const minDiff = document.getElementById("f_min_diff").value.trim();
+      filterLeagueEl.innerHTML = '<option value="all">Все лиги</option>';
+      leagues.forEach(l => {
+        const opt = document.createElement('option');
+        opt.value = l;
+        opt.textContent = l;
+        filterLeagueEl.appendChild(opt);
+      });
+      if ([...leagues].includes(prevLeague)) {
+        filterLeagueEl.value = prevLeague;
+      } else {
+        filters.league = 'all';
+      }
+    }
 
-  let url = `/api/anomalies?minutes=${encodeURIComponent(mins)}`;
-  if (type) url += `&type=${encodeURIComponent(type)}`;
-  if (book) url += `&bookmaker=${encodeURIComponent(book)}`;
-  if (minDiff) url += `&min_diff=${encodeURIComponent(minDiff)}`;
+    // ====== Рендер таблицы ======
+    function renderTable() {
+      tbodyEl.innerHTML = '';
 
-  fetch(url)
-    .then(r => r.json())
-    .then(data => {
-      const tbody = document.querySelector("#an_table tbody");
-      tbody.innerHTML = "";
+      let list = anomaliesRaw.slice();
 
-      data.forEach(row => {
-        const tr = document.createElement("tr");
+      // сортировка по времени (последние сверху)
+      list.sort((a, b) => parseTime(b.time) - parseTime(a.time));
 
-        const tdTime = document.createElement("td");
-        tdTime.textContent = row.time;
+      // фильтрация
+      list = list.filter(a => {
+        if (filters.bookmaker !== 'all' && a.bookmaker !== filters.bookmaker) return false;
+        if (filters.type !== 'all' && a.type_label !== filters.type) return false;
+        if (filters.league !== 'all' && a.league !== filters.league) return false;
 
-        const tdMatch = document.createElement("td");
-        tdMatch.textContent = row.match;
+        if (filters.search) {
+          const q = filters.search.toLowerCase();
+          const match = (a.match || '').toLowerCase();
+          if (!match.includes(q)) return false;
+        }
 
-        const tdLeague = document.createElement("td");
-        tdLeague.textContent = row.league;
+        return true;
+      });
 
-        const tdBook = document.createElement("td");
-        tdBook.textContent = row.bookmaker || "";
+      shownCountEl.textContent = list.length.toString();
 
-        const tdType = document.createElement("td");
-        const span = document.createElement("span");
-        span.className = "badge-type";
-        span.textContent = row.type_label;
-        span.style.backgroundColor = row.badge_color || "#eeeeee";
-        tdType.appendChild(span);
+      if (list.length === 0) {
+        emptyStateEl.style.display = 'block';
+        return;
+      } else {
+        emptyStateEl.style.display = 'none';
+      }
 
-        const tdDetails = document.createElement("td");
-        tdDetails.textContent = row.details || "";
+      list.forEach(a => {
+        const tr = document.createElement('tr');
+        tr.className = 'oo-anom-row';
 
+        const baseColor = a.badge_color || '#1f2937';
+        tr.style.backgroundColor = baseColor;
+
+        // Время
+        const tdTime = document.createElement('td');
+        tdTime.className = 'col-time';
+        tdTime.textContent = a.time || '';
         tr.appendChild(tdTime);
+
+        // Матч
+        const tdMatch = document.createElement('td');
+        tdMatch.className = 'col-match';
+        tdMatch.textContent = a.match || '—';
         tr.appendChild(tdMatch);
+
+        // Лига
+        const tdLeague = document.createElement('td');
+        tdLeague.className = 'col-league';
+        tdLeague.textContent = a.league || '—';
         tr.appendChild(tdLeague);
-        tr.appendChild(tdBook);
+
+        // Тип
+        const tdType = document.createElement('td');
+        tdType.className = 'col-type';
+        tdType.textContent = a.type_label || '—';
         tr.appendChild(tdType);
+
+        // Детали
+        const tdDetails = document.createElement('td');
+        tdDetails.className = 'col-details';
+        tdDetails.textContent = a.details || '';
         tr.appendChild(tdDetails);
 
-        tbody.appendChild(tr);
+        // БК
+        const tdBook = document.createElement('td');
+        tdBook.className = 'col-bookmaker';
+        tdBook.textContent = (a.bookmaker || '').toUpperCase();
+        tr.appendChild(tdBook);
+
+        tbodyEl.appendChild(tr);
       });
+    }
+
+    // ====== Загрузка данных ======
+    async function fetchAnomalies() {
+      try {
+        const resp = await fetch(FETCH_URL_BASE + currentMinutes);
+        if (!resp.ok) {
+          console.error('Failed to fetch anomalies', resp.status);
+          return;
+        }
+        const data = await resp.json();
+        anomaliesRaw = Array.isArray(data) ? data : [];
+
+        updateFilterOptions();
+        renderTable();
+
+        const now = new Date();
+        const hh = String(now.getHours()).padStart(2, '0');
+        const mm = String(now.getMinutes()).padStart(2, '0');
+        const ss = String(now.getSeconds()).padStart(2, '0');
+        lastUpdatedEl.textContent = `${hh}:${mm}:${ss}`;
+      } catch (e) {
+        console.error('Error fetching anomalies', e);
+      }
+    }
+
+    // ====== Обработчики ======
+    periodSelectEl.addEventListener('change', () => {
+      currentMinutes = parseInt(periodSelectEl.value, 10) || 30;
+      periodLabelEl.textContent = `(последние ${currentMinutes} минут)`;
+      fetchAnomalies();
     });
-}
 
-// начальная загрузка
-loadBookmakers();
-loadAnomalies();
-</script>
+    filterBookmakerEl.addEventListener('change', () => {
+      filters.bookmaker = filterBookmakerEl.value;
+      renderTable();
+    });
 
-{% endblock %}
+    filterTypeEl.addEventListener('change', () => {
+      filters.type = filterTypeEl.value;
+      renderTable();
+    });
+
+    filterLeagueEl.addEventListener('change', () => {
+      filters.league = filterLeagueEl.value;
+      renderTable();
+    });
+
+    filterSearchEl.addEventListener('input', () => {
+      filters.search = filterSearchEl.value.trim();
+      renderTable();
+    });
+
+    filterResetBtn.addEventListener('click', () => {
+      filters.bookmaker = 'all';
+      filters.type = 'all';
+      filters.league = 'all';
+      filters.search = '';
+
+      filterBookmakerEl.value = 'all';
+      filterTypeEl.value = 'all';
+      filterLeagueEl.value = 'all';
+      filterSearchEl.value = '';
+
+      renderTable();
+    });
+
+    document.addEventListener('DOMContentLoaded', () => {
+      fetchAnomalies();
+      setInterval(fetchAnomalies, 10000);
+    });
+  </script>
+</body>
+</html>

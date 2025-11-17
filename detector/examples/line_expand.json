@@ -1,0 +1,15 @@
+{
+  "type": "LINE_EXPAND",
+
+  "market": {
+    "category": "Asian Handicap",
+    "subtype": "Home",
+    "line_before": -6,
+    "line_after": -12
+  },
+
+  "extra": {
+    "reason": "expanded_line",
+    "source": "playwright_22bet"
+  }
+}

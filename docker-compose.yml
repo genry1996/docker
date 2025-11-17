@@ -105,15 +105,16 @@ services:
       - inforadar_network
 
   inforadar_ui:
-    build: ./inforadar_ui
+    build: .
     container_name: inforadar_ui
-    ports:
-      - "5000:5000"
     environment:
+      - TZ=Europe/Moscow
       - MYSQL_HOST=mysql_inforadar
       - MYSQL_USER=root
       - MYSQL_PASSWORD=ryban8991!
       - MYSQL_DATABASE=inforadar
+    ports:
+      - "5000:5000"
     volumes:
       - ./inforadar_ui:/app
     depends_on:

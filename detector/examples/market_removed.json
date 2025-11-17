@@ -1,0 +1,11 @@
+{
+  "type": "MARKET_REMOVED",
+
+  "market": {
+    "category": "Asian Handicap"
+  },
+
+  "status": {
+    "market_removed": true
+  }
+}

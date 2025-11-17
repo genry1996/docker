@@ -1,0 +1,55 @@
+{
+  "required_fields": [
+    "anomaly_id",
+    "type",
+    "detected_at",
+    "match_id",
+    "bookmaker"
+  ],
+
+  "allowed_types": [
+    "ODDS_DROP",
+    "ODDS_RISE",
+    "LIMIT_DROP",
+    "LIMIT_RISE",
+    "LINE_EXPAND",
+    "LINE_SHRINK",
+    "MARKET_REMOVED",
+    "MARKET_ADDED",
+    "MATCH_REMOVED",
+    "ODDS_SUSPENDED",
+    "ODDS_REAPPEARED",
+    "MARGIN_CHANGE"
+  ],
+
+  "blocks": {
+    "market": {
+      "line_before": "float",
+      "line_after": "float",
+      "category": "string",
+      "subtype": "string"
+    },
+    "odds": {
+      "before": "float",
+      "after": "float",
+      "diff_abs": "float",
+      "diff_pct": "float"
+    },
+    "limits": {
+      "before": "float",
+      "after": "float",
+      "diff_abs": "float",
+      "diff_pct": "float"
+    },
+    "margin": {
+      "before": "float",
+      "after": "float"
+    },
+    "status": {
+      "market_removed": "bool",
+      "match_removed": "bool",
+      "line_added": "bool",
+      "line_removed": "bool"
+    }
+  }
+}

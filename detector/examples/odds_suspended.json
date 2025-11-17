@@ -1,0 +1,12 @@
+{
+  "type": "ODDS_SUSPENDED",
+
+  "market": {
+    "category": "MoneyLine"
+  },
+
+  "status": {
+    "market_removed": false,
+    "line_removed": false
+  }
+}

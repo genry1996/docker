@@ -1,0 +1,12 @@
+{
+  "type": "MARKET_ADDED",
+
+  "market": {
+    "category": "Corners",
+    "subtype": "Total"
+  },
+
+  "status": {
+    "line_added": true
+  }
+}

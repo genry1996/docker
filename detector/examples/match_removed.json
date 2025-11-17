@@ -1,0 +1,12 @@
+{
+  "type": "MATCH_REMOVED",
+
+  "status": {
+    "match_removed": true
+  },
+
+  "extra": {
+    "source": "22bet_html",
+    "note": "Page returned 404"
+  }
+}

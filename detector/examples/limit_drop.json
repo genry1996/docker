@@ -1,0 +1,20 @@
+{
+  "anomaly_id": "uuid-003",
+  "type": "LIMIT_DROP",
+  "severity": "HIGH",
+
+  "match_id": 19002,
+  "bookmaker": "pinnacle",
+
+  "market": {
+    "category": "MoneyLine",
+    "subtype": "Home"
+  },
+
+  "limits": {
+    "before": 5000,
+    "after": 500,
+    "diff_abs": -4500,
+    "diff_pct": -90
+  }
+}

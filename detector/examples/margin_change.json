@@ -1,0 +1,8 @@
+{
+  "type": "MARGIN_CHANGE",
+
+  "margin": {
+    "before": 4.3,
+    "after": 7.8
+  }
+}
